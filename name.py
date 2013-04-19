@@ -97,11 +97,13 @@ def orders(o, level=0):
     else:
         return illion_append(name)
 
+
 def illion_append(s, illi=False):
     if s == '':
         return s
     s = s[:-1] if s[-1:] in vowels else s
     return s + 'illi' if illi else s + 'illion'
+
 
 def match(units, l2):
     if units == ['s']:
