@@ -53,11 +53,9 @@ def name(number):
     if number == '0':
         return zero
 
-    s = str(number)
-
     #deal with hundreds and units first
-    small_nums = hunds(s[-3:], 0)
-    big_nums = digits(s[:-3], 3)
+    small_nums = hunds(number[-3:], 0)
+    big_nums = digits(number[:-3], 3)
     print('small_nums: ' + small_nums)
     print('big_nums: ' + big_nums)
 
@@ -153,6 +151,7 @@ def hunds(s, o):
             # do not return 'zero' here ('twenty zero' bug)
             return ''
         elif n < 13 and len(s) == 1:
+            # do not recurse for this case
             return units[n]
         elif n < 13:
             name = units[n]
