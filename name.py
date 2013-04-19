@@ -44,6 +44,7 @@ cwhunds_prefixes = {0: [], 100: ['n', 'x'], 200: ['n'], 300: ['n', 's'],
 
 vowels = set('aeiou')
 
+
 def name(number):
 
     if type(number) is int:
@@ -55,12 +56,12 @@ def name(number):
     s = str(number)
 
     #deal with hundreds and units first
-    postfix = hunds(s[-3:], 0)
-    prefix = digits(s[:-3], 3)
-    #print('postfix: ' + postfix)
-    #print('prefix: ' + prefix)
+    small_nums = hunds(s[-3:], 0)
+    big_nums = digits(s[:-3], 3)
+    print('small_nums: ' + small_nums)
+    print('big_nums: ' + big_nums)
 
-    words = (prefix + ' ' + postfix).strip()
+    words = (big_nums + ' ' + small_nums).strip()
     print(words)
     return words
 
@@ -128,10 +129,6 @@ def digits(s, o):
     # o should be greater than or equal to 3
     if s == '' or o < 3:
         return ''
-    #elif o == 3:
-    #    orders = loworders
-    #elif o >= 6:
-    #    orders = illions
 
     # isolate last three digits
     h = hunds(s[-3:], 0)
@@ -155,18 +152,21 @@ def hunds(s, o):
         if n == 0:
             # do not return 'zero' here ('twenty zero' bug)
             return ''
+        elif n < 13 and len(s) == 1:
+            return units[n]
         elif n < 13:
-            newpart = units[n]
+            name = units[n]
         elif n < 20:
-            newpart = teens[n-10] + teens['postfix']
+            name = teens[n-10] + teens['postfix']
         else:  # n < 100
-            newpart = tens[int(n/10)] + tens['postfix'] + ' ' \
-                + hunds(s[-1:], 0)
-        return (hunds(s[:-2], 2) + ' ' + newpart).strip()
+            print(hunds(s[-1:], 0))
+            name = tens[int(n/10)] + tens['postfix'] + ' ' + hunds(s[-1:], 0)
+            print(name)
+        return hunds(s[:-2], 2) + ' ' + name
     elif o == 2:
         if n < 10:
-            newpart = units[n] + ' ' + loworders[o]
-        return newpart
+            name = units[n] + ' ' + loworders[o]
+        return name
 
 
 if __name__ == '__main__':
@@ -193,6 +193,6 @@ if __name__ == '__main__':
     assert name(int(10**48)) == 'one quinquadecillion'
     assert name(int(10**49)) == 'ten quinquadecillion'
     name('123432316243546583726354657684736252434352627849587362542')
-    name(str(10**30003))
+    name(str(10**303))
     assert name(10**603) == 'one ducentillion'
     print('All ok')
