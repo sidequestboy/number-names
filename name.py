@@ -12,58 +12,62 @@ teens.update({'postfix': 'teen', 3: 'thir', 5: 'fif'})
 tens = teens.copy()
 tens.update({'postfix': 'ty', 2: 'twen', 4: 'for', 8: 'eigh'})
 
-loworders = {'postfix': '', 2: 'hundred', 3: 'thousand'}
+#loworders = {'postfix': '', 2: 'hundred', 3: 'thousand'}
 
 #Chuquet
-illions = {'postfix': 'illion', 6: 'm', 9: 'b', 12: 'tr', 15: 'quadr',
-           18: 'quint', 21: 'sext', 24: 'sept', 27: 'oct', 30: 'non'}
+#illions = {'postfix': 'illion', 6: 'm', 9: 'b', 12: 'tr', 15: 'quadr',
+#           18: 'quint', 21: 'sext', 24: 'sept', 27: 'oct', 30: 'non'}
 
-#Conway-Wechsler
-cwdict = {'u': {0: ('',               set()),
-                1: ('un',             set()),
-                2: ('duo',            set()),
-                3: ('tre',            set('s')),
-                4: ('quattuor',       set()),
-                5: ('quinqua',        set()),
-                6: ('se',             set('sx')),
-                7: ('septe',          set('mn')),
-                8: ('octo',           set()),
-                9: ('nove',           set('mn'))},
+#Conway-Wechsler (Miakinen Variant) (Extended Chuquet)
+cwdict = {'low': {2: 'hundred', 3: 'thousand'},
 
-          't': {10: ('deci',          set('n')),
-                20: ('viginti',       set('ms')),
-                30: ('triginta',      set('ns')),
-                40: ('quadraginta',   set('ns')),
-                50: ('quinquaginta',  set('ns')),
-                60: ('sexaginta',     set('n')),
-                70: ('septuaginta',   set('n')),
-                80: ('octoginta',     set('mx')),
-                90: ('nonaginta',     set())},
+          'ill': {6:  'm', 9:  'b', 12: 'tr', 15: 'quadr', 18: 'quint',
+                  21: 'sext', 24: 'sept', 27: 'oct', 30: 'non'},
 
-          'h': {100: ('centi',        set('nx')),
-                200: ('ducenti',      set('n')),
-                300: ('trecenti',     set('ns')),
-                400: ('quadringenti', set('ns')),
-                500: ('quingenti',    set('ns')),
-                600: ('sescenti',     set('n')),
-                700: ('septingenti',  set('n')),
-                800: ('octingenti',   set('mx')),
-                900: ('nongenti',     set())}}
+          'one': {0: ('',               set()),
+                  1: ('un',             set()),
+                  2: ('duo',            set()),
+                  3: ('tre',            set('s')),
+                  4: ('quattuor',       set()),
+                  5: ('quinqua',        set()),
+                  6: ('se',             set('sx')),
+                  7: ('septe',          set('mn')),
+                  8: ('octo',           set()),
+                  9: ('nove',           set('mn'))},
+
+          'ten': {10: ('deci',          set('n')),
+                  20: ('viginti',       set('ms')),
+                  30: ('triginta',      set('ns')),
+                  40: ('quadraginta',   set('ns')),
+                  50: ('quinquaginta',  set('ns')),
+                  60: ('sexaginta',     set('n')),
+                  70: ('septuaginta',   set('n')),
+                  80: ('octoginta',     set('mx')),
+                  90: ('nonaginta',     set())},
+
+          'hun': {100: ('centi',        set('nx')),
+                  200: ('ducenti',      set('n')),
+                  300: ('trecenti',     set('ns')),
+                  400: ('quadringenti', set('ns')),
+                  500: ('quingenti',    set('ns')),
+                  600: ('sescenti',     set('n')),
+                  700: ('septingenti',  set('n')),
+                  800: ('octingenti',   set('mx')),
+                  900: ('nongenti',     set())}}
 
 vowels = set('aeiou')
 
 
 def name(number):
-
+    #convert to str
     if type(number) is int:
         number = str(number)
     else:
         try:
-            int(number)
+            number = str(int(number))
         except ValueError as e:
             print(e)
             return -1
-
 
     if number == '0':
         return zero
@@ -87,12 +91,12 @@ def name(number):
 def orders(o, level=0):
     #print('in orders(), o={}'.format(o))
     if o <= 3:
-        return loworders[o]
+        return cwdict['low'][o]
     elif o % 3 != 0:
         #probably raise error
         return None
     elif o <= 30:
-        return illions[o] + illions['postfix']  # e.g. 'b'+'illion'
+        return illion_append(cwdict['ill'][o])  # e.g. 'b'+'illion'
 
     name_num = int((o - 3) / 3) % 1000
     #mult_num = int(((o-3)/3)/1000)
@@ -103,9 +107,9 @@ def orders(o, level=0):
     #print('u={}, t={}, h={}'.format(u, t, h))
 
     if t:
-        name = cwdict['u'][u][0] + match(u, 't', t) + cwdict['t'][t][0]
+        name = cwdict['one'][u][0] + match(u, 'ten', t) + cwdict['ten'][t][0]
     else:
-        name = cwdict['u'][u][0] + match(u, 'h', h) + cwdict['h'][h][0]
+        name = cwdict['one'][u][0] + match(u, 'hun', h) + cwdict['hun'][h][0]
 
     if level == 0 and o > 1000:
         return orders(int(o / 1000) + (o % 1000), level + 1) \
@@ -131,7 +135,7 @@ def match(u, label, val):
         return 's'
     else:
         try:
-            return cwdict['u'][u][1].intersection(cwdict[label][val][1]).pop()
+            return cwdict['one'][u][1].intersection(cwdict[label][val][1]).pop()
         except KeyError:
             return ''
 
@@ -148,7 +152,8 @@ def digits(s, o):
         newpart = digits(s[:-3], o+3)
     else:
         #print(o)
-        newpart = digits(s[:-3], o+3) + ' ' + hunds(s[-3:], 0) + ' ' + orders(o)
+        newpart = digits(s[:-3], o+3) + ' ' + hunds(s[-3:], 0) + ' ' \
+            + orders(o)
     return newpart.strip()
 
 
@@ -176,7 +181,7 @@ def hunds(s, o):
         return hunds(s[:-2], 2) + ' ' + name
     elif o == 2:
         if n < 10:
-            name = units[n] + ' ' + loworders[o]
+            name = units[n] + ' ' + cwdict['low'][o]
         return name
 
 
