@@ -12,13 +12,8 @@ teens.update({'postfix': 'teen', 3: 'thir', 5: 'fif'})
 tens = teens.copy()
 tens.update({'postfix': 'ty', 2: 'twen', 4: 'for', 8: 'eigh'})
 
-#loworders = {'postfix': '', 2: 'hundred', 3: 'thousand'}
 
-#Chuquet
-#illions = {'postfix': 'illion', 6: 'm', 9: 'b', 12: 'tr', 15: 'quadr',
-#           18: 'quint', 21: 'sext', 24: 'sept', 27: 'oct', 30: 'non'}
-
-#Conway-Wechsler (Miakinen Variant) (Extended Chuquet)
+# Conway-Wechsler dictionary (Miakinen Variant) (Extended Chuquet)
 cwdict = {'low': {2: 'hundred', 3: 'thousand'},
 
           'ill': {6:  'm', 9:  'b', 12: 'tr', 15: 'quadr', 18: 'quint',
@@ -98,26 +93,33 @@ def orders(o, level=0):
     elif o <= 30:
         return illion_append(cwdict['ill'][o])  # e.g. 'b'+'illion'
 
+    # since o > 30, name_num > 27/3 = 9 but name_num < 1000
+    # name_num refers to the indexing used in cwdict for one, ten, hun
     name_num = int((o - 3) / 3) % 1000
     #mult_num = int(((o-3)/3)/1000)
     #print('in orders, name_num={}'.format(name_num))
+    #get last three digits, assign their orders to u, t, h
     o_list = [int(c) for c in '0'+str(name_num)]
     u, t, h = o_list[-1] * 1, o_list[-2] * 10, o_list[-3] * 100
 
     #print('u={}, t={}, h={}'.format(u, t, h))
 
+    #
     if t:
         name = cwdict['one'][u][0] + match(u, 'ten', t) + cwdict['ten'][t][0]
     else:
         name = cwdict['one'][u][0] + match(u, 'hun', h) + cwdict['hun'][h][0]
 
-    if level == 0 and o > 1000:
+
+
+    if level == 0 and o > 3003:
         return orders(int(o / 1000) + (o % 1000), level + 1) \
             + illion_append(name)
-    elif o > 1000:
+    elif o > 3003:
         return orders(int(o / 1000) + (o % 1000), level + 1) \
             + illion_append(name, illi=True)
     else:
+        print(('line 122: level={}, o={}, name='+name).format(level, o))
         return illion_append(name)
 
 
@@ -212,4 +214,6 @@ if __name__ == '__main__':
     name(str(10**303))
     name('blah')
     name(-495859038387495058737262839405068674736232920384757670594736365363849505)
+    name(10**2421)
+    name(10**1015)
     print('All ok')
