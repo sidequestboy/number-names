@@ -1,7 +1,6 @@
 """
 Names integers according to Chuquet, Conway-Wechsler
 """
-
 zero = 'zero'
 
 units = dict(enumerate(['', 'one', 'two', 'three', 'four', 'five', 'six',
@@ -20,27 +19,36 @@ illions = {'postfix': 'illion', 6: 'm', 9: 'b', 12: 'tr', 15: 'quadr',
            18: 'quint', 21: 'sext', 24: 'sept', 27: 'oct', 30: 'non'}
 
 #Conway-Wechsler
-cwones = dict(enumerate(['', 'un', 'duo', 'tre', 'quattuor', 'quinqua', 'se',
-                         'septe', 'octo', 'nove']))
+cwdict = {'u': {0: ('',               set()),
+                1: ('un',             set()),
+                2: ('duo',            set()),
+                3: ('tre',            set('s')),
+                4: ('quattuor',       set()),
+                5: ('quinqua',        set()),
+                6: ('se',             set('sx')),
+                7: ('septe',          set('mn')),
+                8: ('octo',           set()),
+                9: ('nove',           set('mn'))},
 
-cwones_suffixes = {0: [], 1: [], 2: [], 3: ['s'], 4: [], 5: [], 6: ['x', 's'],
-                   7: ['m', 'n'], 8: [], 9: ['m', 'n']}
+          't': {10: ('deci',          set('n')),
+                20: ('viginti',       set('ms')),
+                30: ('triginta',      set('ns')),
+                40: ('quadraginta',   set('ns')),
+                50: ('quinquaginta',  set('ns')),
+                60: ('sexaginta',     set('n')),
+                70: ('septuaginta',   set('n')),
+                80: ('octoginta',     set('mx')),
+                90: ('nonaginta',     set())},
 
-cwtens = {0: '', 10: 'deci', 20: 'viginti', 30: 'triginta', 40: 'quadraginta',
-          50: 'quinquaginta', 60: 'sexaginta', 70: 'septuaginta',
-          80: 'octoginta', 90: 'nonaginta'}
-
-cwtens_prefixes = {0: [], 10: ['n'], 20: ['m', 's'], 30: ['n', 's'],
-                   40: ['n', 's'], 50: ['n', 's'], 60: ['n'], 70: ['n'],
-                   80: ['m', 'x'], 90: []}
-
-cwhunds = {0: '', 100: 'centi', 200: 'ducenti', 300: 'trecenti',
-           400: 'quadringenti', 500: 'quingenti', 600: 'sescenti',
-           700: 'septingenti', 800: 'octingenti', 900: 'nongenti'}
-
-cwhunds_prefixes = {0: [], 100: ['n', 'x'], 200: ['n'], 300: ['n', 's'],
-                    400: ['n', 's'], 500: ['n', 's'], 600: ['n'], 700: ['n'],
-                    800: ['m', 'x'], 900: []}
+          'h': {100: ('centi',        set('nx')),
+                200: ('ducenti',      set('n')),
+                300: ('trecenti',     set('ns')),
+                400: ('quadringenti', set('ns')),
+                500: ('quingenti',    set('ns')),
+                600: ('sescenti',     set('n')),
+                700: ('septingenti',  set('n')),
+                800: ('octingenti',   set('mx')),
+                900: ('nongenti',     set())}}
 
 vowels = set('aeiou')
 
@@ -49,17 +57,29 @@ def name(number):
 
     if type(number) is int:
         number = str(number)
+    else:
+        try:
+            int(number)
+        except ValueError as e:
+            print(e)
+            return -1
+
 
     if number == '0':
         return zero
+    elif number[0:1] == '-':
+        number = number[1:]
+        sign = 'negative '
+    else:
+        sign = ''
 
     #deal with hundreds and units first
     small_nums = hunds(number[-3:], 0)
     big_nums = digits(number[:-3], 3)
-    print('small_nums: ' + small_nums)
-    print('big_nums: ' + big_nums)
+    #print('small_nums: ' + small_nums)
+    #print('big_nums: ' + big_nums)
 
-    words = (big_nums + ' ' + small_nums).strip()
+    words = sign + (big_nums + ' ' + small_nums).strip()
     print(words)
     return words
 
@@ -80,13 +100,12 @@ def orders(o, level=0):
     o_list = [int(c) for c in '0'+str(name_num)]
     u, t, h = o_list[-1] * 1, o_list[-2] * 10, o_list[-3] * 100
 
-    #print('u={}, t={}, h={}'.format(u,t,h))
-    if h == 0:
-        name = cwones[u] + match(cwones_suffixes[u], cwtens_prefixes[t]) \
-            + cwtens[t]
+    #print('u={}, t={}, h={}'.format(u, t, h))
+
+    if t:
+        name = cwdict['u'][u][0] + match(u, 't', t) + cwdict['t'][t][0]
     else:
-        name = cwones[u] + match(cwones_suffixes[u], cwhunds_prefixes[h])\
-            + cwhunds[h]
+        name = cwdict['u'][u][0] + match(u, 'h', h) + cwdict['h'][h][0]
 
     if level == 0 and o > 1000:
         return orders(int(o / 1000) + (o % 1000), level + 1) \
@@ -105,23 +124,16 @@ def illion_append(s, illi=False):
     return s + 'illi' if illi else s + 'illion'
 
 
-def match(units, l2):
-    if units == ['s']:
-        #tre case
-        if 's' in l2:
-            return 's'
-        elif 'x' in l2:
-            return 'x'
-        else:
-            return ''
+def match(u, label, val):
 
-    for suffix in units:
-        if suffix in l2:
-            return suffix
-    #print('units: {} did not match'.format(units))
-    #print('l2   : {}'.format(l2))
-    return ''
-    #raise error
+    if u == 3 and 'x' in cwdict[label][val][1]:
+        # tres 's' match with 'x' case
+        return 's'
+    else:
+        try:
+            return cwdict['u'][u][1].intersection(cwdict[label][val][1]).pop()
+        except KeyError:
+            return ''
 
 
 def digits(s, o):
@@ -160,9 +172,7 @@ def hunds(s, o):
         elif n < 20:
             name = teens[n-10] + teens['postfix']
         else:  # n < 100
-            print(hunds(s[-1:], 0))
             name = tens[int(n/10)] + tens['postfix'] + ' ' + hunds(s[-1:], 0)
-            print(name)
         return hunds(s[:-2], 2) + ' ' + name
     elif o == 2:
         if n < 10:
@@ -195,5 +205,6 @@ if __name__ == '__main__':
     assert name(int(10**49)) == 'ten quinquadecillion'
     name('123432316243546583726354657684736252434352627849587362542')
     name(str(10**303))
-    assert name(10**603) == 'one ducentillion'
+    name('blah')
+    name(-495859038387495058737262839405068674736232920384757670594736365363849505)
     print('All ok')
