@@ -7,13 +7,14 @@ units = dict(enumerate(['', 'one', 'two', 'three', 'four', 'five', 'six',
                         'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve']))
 
 teens = units.copy()
-teens.update({'postfix': 'teen', 3: 'thir', 5: 'fif'})
+teens.update({'suffix': 'teen', 3: 'thir', 5: 'fif'})
 
 tens = teens.copy()
-tens.update({'postfix': 'ty', 2: 'twen', 4: 'for', 8: 'eigh'})
+tens.update({'suffix': 'ty', 2: 'twen', 4: 'for', 8: 'eigh'})
 
 
 # Conway-Wechsler dictionary (Miakinen Variant) (Extended Chuquet)
+# aka 'échelle courte' (American Standard)
 cwdict = {'low': {2: 'hundred', 3: 'thousand'},
 
           'ill': {0: 'n', 1:  'm', 2:  'b', 3: 'tr', 4: 'quadr', 5: 'quint',
@@ -53,7 +54,7 @@ cwdict = {'low': {2: 'hundred', 3: 'thousand'},
 vowels = set('aeiou')
 
 
-def name(number):
+def name(number, scale='American'):
     #convert to str
     if type(number) is int:
         number = str(number)
@@ -72,9 +73,9 @@ def name(number):
     if number == '0':
         name = zero
     else:
-        #deal with hundreds and units first
-        small_nums = hunds(number[-3:], 0)
-        big_nums = digits(number[:-3], 3)
+        #deal with low nums first
+        small_nums = low_nums(number[-3:], 0, scale)
+        big_nums = high_nums(number[:-3], 3, scale)
         #print('small_nums: ' + small_nums)
         #print('big_nums: ' + big_nums)
         name = (big_nums + ' ' + small_nums).strip()
@@ -84,7 +85,7 @@ def name(number):
 
 
 def orders(o, level=0):
-    print('new round of orders(), o={}'.format(o))
+    #print('new round of orders(), o={}'.format(o))
     # since o > 30, name_num > 27/3 = 9 but name_num < 1000
     # name_num refers to the indexing used in cwdict for one, ten, hun
     name_num = int((o - 3) / 3) % 1000
@@ -117,29 +118,20 @@ def orders(o, level=0):
         huns = cwdict[100][h]
     except KeyError:
         huns = (set(), '', set())
-    #
+
     name = ones[1] + match_joiners(ones, tens) + tens[1] \
         + match_joiners(tens, huns) + huns[1]
 
     if o > 3003:
-        print('high order! o={}'.format(o))
-        print('current_name='+name)
-        print('name_num={}'.format(name_num))
+        #print('high order! o={}'.format(o))
+        #print('current_name='+name)
+        #print('name_num={}'.format(name_num))
         new_name_num = o-3
-
 
         return orders(int(str(int((o-3)/3))[:-3])*3+3, level + 1) + illion_append(name, level)
     else:
-        print(('level={}, o={}, name='+name).format(level, o))
+        #print(('level={}, o={}, name='+name).format(level, o))
         return illion_append(name, level)
-
-#def highorders(o, level=1):
-#    """
-#    for numbers higher than 10**3003 called from orders()
-#    """
-#    name_num = int((o - 3) / 3) % 1000
-
-
 
 
 def illion_append(s, level=0):
@@ -155,7 +147,7 @@ def match_joiners(left, right):
     right should be dict entry joining from right
     """
 
-    if left[1] ==  'tre' and 'x' in right[0]:
+    if left[1] == 'tre' and 'x' in right[0]:
         # tres 's' match with 'x' case
         return 's'
     else:
@@ -165,44 +157,47 @@ def match_joiners(left, right):
             return ''
 
 
-def digits(s, o):
+def high_nums(s, o, scale='American'):
+
+    if scale == 'American':
+        grouping = 3
+    elif scale == 'Peletier':
+        grouping = 3
 
     # o should be greater than or equal to 3
     if s == '' or o < 3:
         return ''
-    if o % 3 != 0:
-        print('order not divisible by 3 - o={}'.format(o))
+    if o % grouping != 0:
+        print('order not divisible by {} - o={}'.format(grouping, o))
 
     # isolate last three digits
     i = 1
-    current_str = s[-3*i:]
+    current_str = s[-grouping*i:]
     while current_str == '000':
         i += 1
-        o += 3
-        current_str = s[-3*i:-3*(i-1)]
-    #print('k, getting hunds on s={}'.format(current_str))
-    current_name = hunds(current_str)
+        o += grouping
+        current_str = s[-grouping*i:-grouping*(i-1)]
 
-    if current_name == '':
-        #print("current_name == ''")
-        newpart = digits(s[:-3*i], o+3)
-    else:
-        #print(o)
-        #newpart = digits(s[:-3*i], o+3) + ' ' + hunds(s[-3*i:-3*(i-1)], 0) + ' ' \
-        #    + orders(o)
-        newpart = digits(s[:-3*i], o+3) + ' ' + current_name + ' ' + orders(o)
+    current_name = low_nums(current_str, o=0, scale=scale)
+
+    newpart = high_nums(s[:-grouping*i], o+grouping, scale) + ' ' + current_name + ' ' + orders(o)
     return newpart.strip()
 
 
-def hunds(s, o=0):
-
-    if s == '':
-        return s
-
-    # isolate last two digits
-    n = int(s[-2:])
+def low_nums(s, o=0, scale='American'):
+    """
+    converts str s to name of low number e.g. one hundred ten
+    o specifies order of magnitude of the last digit of s
+    scale specifies which number grouping convention to use.
+    'American' - low_nums names up to hundreds
+    'Peletier' - low_nums names up to thousands
+    """
+    if s == '' or (o > 2 and scale == 'American') or (o > 3 and scale == 'Peletier'):
+        return ''
 
     if o == 0:
+        # isolate last two digits
+        n = int(s[-2:])
         if n == 0:
             # do not return 'zero' here ('twenty zero' bug)
             return ''
@@ -212,14 +207,19 @@ def hunds(s, o=0):
         elif n < 13:
             name = units[n]
         elif n < 20:
-            name = teens[n-10] + teens['postfix']
+            name = teens[n-10] + teens['suffix']
         else:  # n < 100
-            name = tens[int(n/10)] + tens['postfix'] + ' ' + hunds(s[-1:], 0)
-        return hunds(s[:-2], 2) + ' ' + name
+            name = (tens[int(n/10)] + tens['suffix'] + ' ' + low_nums(s[-1:], o, scale=scale)).strip()
+        return low_nums(s[:-2], o+2, scale=scale) + ' ' + name
     elif o == 2:
-        if n < 10:
-            name = units[n] + ' ' + cwdict['low'][o]
-        return name
+        # isolate last digit
+        n = int(s[-1:])
+        #name the hundreds e.g. 'one hundred'
+        return (low_nums(s[:-1], 3, scale) + ' ' + units[n] + ' ' + cwdict['low'][o]).strip()
+
+    elif o == 3 and scale == 'Peletier':
+        n = int(s[-3:])
+        return (low_nums(s[-3:], 0, scale) + ' ' + low_nums(s[:-3], 2, scale) + cwdict['low'][o]).strip()
 
 
 if __name__ == '__main__':
@@ -255,10 +255,13 @@ if __name__ == '__main__':
     name('000000000000')
     assert name(10**1015) == 'ten septentrigintatrecentillion'
 
-
     assert name(10**3001) == 'ten novenonagintanongentillion'
 
     assert name(10**4000) == 'ten milliduotrigintatrecentillion'
 
-    assert name(10**19683) == 'sextillisexagintaquingentillion'
+    assert name(10**19683) == 'one sextillisexagintaquingentillion'
+    print('googol!')
+    name(10**100)
+
+    print(low_nums('11123', 0, 'Peletier'))
     print('All ok')
