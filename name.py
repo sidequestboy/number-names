@@ -54,22 +54,27 @@ cwdict = {'low': {2: 'hundred', 3: 'thousand'},
 vowels = set('aeiou')
 
 
-def name(number, scale='American'):
-    #convert to str
-    if type(number) is int:
-        number = str(number)
-        #print(number)
-    else:
-        try:
-            number = str(int(number))
-        except ValueError as e:
-            print(e)
-            return -1
-    #print('input: '+number)
+def name(number, scale='American', precision=None):
+    # convert to int
+    try:
+        number = int(number)
+    except ValueError as e:
+        raise e
+
+    # round to precision
+    if precision is not None:
+        number = _round(number, precision)
+
+    # convert to str
+    number = str(number)
+
+    # get sign
     sign = ''
-    if number[0:1] == '-':
+    if number.startswith('-'):
+        sign = 'negative'
         number = number[1:]
-        sign = 'negative '
+
+    # zero special-case
     if number == '0':
         name = zero
     else:
@@ -79,9 +84,16 @@ def name(number, scale='American'):
         #print('small_nums: ' + small_nums)
         #print('big_nums: ' + big_nums)
         name = (big_nums + ' ' + small_nums).strip()
-    words = sign + name
+    words = _join([sign, name])
     print('output: {}'.format(words))
     return words
+
+
+def _round(num, precision, base=10):
+    import math
+    k = base ** (math.floor(math.log(num, base)) + 1 - precision)
+    num += k/2
+    return int(num - num % k)
 
 
 def orders(o, level=0):
@@ -184,84 +196,58 @@ def high_nums(s, o, scale='American'):
     return newpart.strip()
 
 
+def _join(l, delim=' '):
+    """Join each str in l by delim, unless str is ''"""
+    return delim.join(k for k in l if k != '')
+
+
 def low_nums(s, o=0, scale='American'):
-    """
-    converts str s to name of low number e.g. one hundred ten
-    o specifies order of magnitude of the last digit of s
-    scale specifies which number grouping convention to use.
-    'American' - low_nums names up to hundreds
-    'Peletier' - low_nums names up to thousands
+    """Name string s recursively.
+    :param str s:
+        String representation of decimal digits to be named
+    :param int o:
+        Recursive index; order of magnitude of the last digit of s.
+    :param str scale:
+        One of ['American', 'Peletier'].
     """
     if s == '' or (o > 2 and scale == 'American') or (o > 3 and scale == 'Peletier'):
         return ''
 
     if o == 0:
-        # isolate last two digits
-        n = int(s[-2:])
+        # number of digits to deal with
+        n_digits = 2
+        # isolate last one or two digits (tens and ones columns)
+        n = int(s[-n_digits:])
         if n == 0:
-            # do not return 'zero' here ('twenty zero' bug)
+            # do not return 'zero' here, 'zero' is a special-case. We only say 
+            # 'zero' when the whole number is exactly 0.
             return ''
-        elif n < 13 and len(s) == 1:
-            # do not recurse for this case
-            return units[n]
         elif n < 13:
+            # Name the (one or two) digits in the ones and tens column by name
+            # between 'one' and 'twelve'
             name = units[n]
         elif n < 20:
-            name = teens[n-10] + teens['suffix']
+            # Name the (one or two) digits in the ones and tens column by name
+            # between 'thirteen' and 'nineteen'
+            name = teens[n % 10] + teens['suffix']
         else:  # n < 100
-            name = (tens[int(n/10)] + tens['suffix'] + ' ' + low_nums(s[-1:], o, scale=scale)).strip()
-        return low_nums(s[:-2], o+2, scale=scale) + ' ' + name
+            # Name the compound number e.g. 'thirty-two' between 'twenty' and 
+            # 'ninety-nine'
+            name = _join([tens[int(n/10)] + tens['suffix'], low_nums(s[-1:])], '-')
+
     elif o == 2:
-        # isolate last digit
-        n = int(s[-1:])
-        #name the hundreds e.g. 'one hundred'
-        return (low_nums(s[:-1], 3, scale) + ' ' + units[n] + ' ' + cwdict['low'][o]).strip()
+        # number of digits to deal with
+        n_digits = 1
+        # isolate last digit (hundreds column)
+        n = int(s[-n_digits:])
+        # name the hundreds e.g. 'one hundred'
+        name = _join([units[n], cwdict['low'][2]])
 
-    elif o == 3 and scale == 'Peletier':
-        n = int(s[-3:])
-        return (low_nums(s[-3:], 0, scale) + ' ' + low_nums(s[:-3], 2, scale) + cwdict['low'][o]).strip()
-
+    # elif o == 3 and scale == 'Peletier':
+    #     n = int(s[-3:])
+    #     return (low_nums(s[-3:], 0, scale) + ' ' + low_nums(s[:-3], 2, scale) + cwdict['low'][o]).strip()
+    
+    return _join([low_nums(s[:-n_digits], o+n_digits, scale), name])
 
 if __name__ == '__main__':
-    assert name('4') == 'four'
-    assert name('133') == 'one hundred thirty three'
-    assert name('12') == 'twelve'
-    assert name('101') == 'one hundred one'
-    assert name('212') == "two hundred twelve"
-    assert name('40') == 'forty'
-    assert name('10000') == 'ten thousand'
-    assert name('0') == 'zero'
-    assert name('12373581926') == 'twelve billion three hundred seventy '\
-        'three million five hundred eighty one thousand nine hundred '\
-        'twenty six'
-    assert name('123456789') == 'one hundred twenty three million four '\
-        'hundred fifty six thousand seven hundred eighty nine'
-    assert name('10000000000') == 'ten billion'
-    print(name(int(10**30)))
-    assert name(int(10**30)) == 'one nonillion'
-    assert name(int(10**33)) == 'one decillion'
-    assert name(int(10**36)) == 'one undecillion'
-    assert name(int(10**39)) == 'one duodecillion'
-    assert name(int(10**42)) == 'one tredecillion'
-    assert name(int(10**45)) == 'one quattuordecillion'
-    assert name(int(10**48)) == 'one quinquadecillion'
-    assert name(int(10**49)) == 'ten quinquadecillion'
-    name('123432316243546583726354657684736252434352627849587362542')
-    assert name(str(10**303)) == 'one centillion'
-    name('blah')
-    name(-495859038387495058737262839405068674736232920384757670594736365363849505)
-    #assert name(10**2421) == 'one sexoctingentillion'
-    name(10**114)
-    name('000000000000')
-    assert name(10**1015) == 'ten septentrigintatrecentillion'
-
-    assert name(10**3001) == 'ten novenonagintanongentillion'
-
-    assert name(10**4000) == 'ten milliduotrigintatrecentillion'
-
-    assert name(10**19683) == 'one sextillisexagintaquingentillion'
-    print('googol!')
-    name(10**100)
-
-    print(low_nums('11123', 0, 'Peletier'))
-    print('All ok')
+    pass
