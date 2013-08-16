@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Names integers according to Chuquet, Conway-Wechsler
 """
@@ -54,7 +55,7 @@ cwdict = {'low': {2: 'hundred', 3: 'thousand'},
 vowels = set('aeiou')
 
 
-def name(number, scale='American', precision=None):
+def name(number, precision=None):
     # convert to int
     try:
         number = int(number)
@@ -78,9 +79,10 @@ def name(number, scale='American', precision=None):
     if number == '0':
         name = zero
     else:
-        #deal with low nums first
-        small_nums = low_nums(number[-3:], 0, scale)
-        big_nums = high_nums(number[:-3], 3, scale)
+        # Name ones, tens, hundreds first, because they are peculiar.
+        small_nums = low_nums(number)
+        # Name large numbers (>=thousands); they follow nice rules.
+        big_nums = high_nums(number)
         #print('small_nums: ' + small_nums)
         #print('big_nums: ' + big_nums)
         name = (big_nums + ' ' + small_nums).strip()
@@ -169,31 +171,34 @@ def match_joiners(left, right):
             return ''
 
 
-def high_nums(s, o, scale='American'):
+def high_nums(s, o=0, scale='American'):
 
     if scale == 'American':
         grouping = 3
-    elif scale == 'Peletier':
-        grouping = 3
+    # elif scale == 'Peletier':
+    #     grouping = 3
 
-    # o should be greater than or equal to 3
-    if s == '' or o < 3:
+    if o < 3:
+        return high_nums(s[:-(3-o)], o=3, scale=scale)
+    if s == '':
         return ''
     if o % grouping != 0:
         print('order not divisible by {} - o={}'.format(grouping, o))
 
-    # isolate last three digits
+    # skip all the zeros
     i = 1
     current_str = s[-grouping*i:]
-    while current_str == '000':
+    while current_str == '0' * grouping:
         i += 1
         o += grouping
         current_str = s[-grouping*i:-grouping*(i-1)]
 
+    print("current_str: {}".format(current_str))
     current_name = low_nums(current_str, o=0, scale=scale)
+    print("current_name: {}".format(current_name))
 
-    newpart = high_nums(s[:-grouping*i], o+grouping, scale) + ' ' + current_name + ' ' + orders(o)
-    return newpart.strip()
+    return _join([high_nums(s[:-grouping*i], o+grouping, scale), current_name,
+                  orders(o)])
 
 
 def _join(l, delim=' '):
@@ -221,7 +226,7 @@ def low_nums(s, o=0, scale='American'):
         if n == 0:
             # do not return 'zero' here, 'zero' is a special-case. We only say 
             # 'zero' when the whole number is exactly 0.
-            return ''
+            name = ''
         elif n < 13:
             # Name the (one or two) digits in the ones and tens column by name
             # between 'one' and 'twelve'
@@ -241,7 +246,8 @@ def low_nums(s, o=0, scale='American'):
         # isolate last digit (hundreds column)
         n = int(s[-n_digits:])
         # name the hundreds e.g. 'one hundred'
-        name = _join([units[n], cwdict['low'][2]])
+        q = units[n]
+        name = _join([q, cwdict['low'][2]]) if q else ''
 
     # elif o == 3 and scale == 'Peletier':
     #     n = int(s[-3:])
